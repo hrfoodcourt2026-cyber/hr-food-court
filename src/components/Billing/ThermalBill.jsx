@@ -20,10 +20,10 @@ const ThermalBill = React.forwardRef(({ billData }, ref) => {
   } = billData;
 
   // Restaurant details from env
-  const restaurantName = 'HR FOOD COURT';
-  const restaurantMobile = '9966850426';
-  const restaurantAddress = 'At Sanjay Gandhi Nagar, Behind Nippo, Opp: Apollo Beside OM Hospital Podalakur Road, Nellore';
-  const restaurantGST = '';
+  const restaurantName = import.meta.env.VITE_RESTAURANT_NAME || 'HR FOOD COURT';
+  const restaurantMobile = import.meta.env.VITE_RESTAURANT_MOBILE || '9966850426';
+  const restaurantAddress = import.meta.env.VITE_RESTAURANT_ADDRESS || '';
+  const restaurantGST = import.meta.env.VITE_RESTAURANT_GST || '';
 
   return (
     <div ref={ref} className="thermal-bill-container p-2 bg-white text-black font-mono text-[9px] uppercase leading-tight w-full mx-auto print:block hidden">
