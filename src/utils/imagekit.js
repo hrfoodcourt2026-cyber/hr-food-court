@@ -42,7 +42,9 @@ const generateHmacSignature = async (message, key) => {
  */
 const getAuthenticationParameters = async () => {
   const token = crypto.randomUUID();
-  const expire = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+  // Use current time + 30 minutes (well within 1 hour limit)
+  const currentTime = Math.floor(Date.now() / 1000);
+  const expire = currentTime + 1800; // 30 minutes from now
   
   // Create signature: HMAC-SHA1(token + expire, privateKey)
   const signatureString = token + expire;
@@ -50,7 +52,7 @@ const getAuthenticationParameters = async () => {
   
   return {
     token,
-    expire: expire.toString(),
+    expire: String(expire),  // ImageKit expects string
     signature
   };
 };
