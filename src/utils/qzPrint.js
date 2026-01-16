@@ -281,6 +281,113 @@ export const printThermalBill = async (billData, printerName = null) => {
   }
 };
 
+// Print menu items list
+export const printMenuItems = async (items, categories, printerName = null) => {
+  try {
+    const config = printerConfig || await getPrinter(printerName);
+    const commands = generateMenuPrintCommands(items, categories);
+    
+    const data = [{ 
+      type: 'raw', 
+      format: 'plain',
+      data: commands
+    }];
+    
+    await qz.print(config, data);
+    return { success: true };
+  } catch (err) {
+    console.error('Print menu error:', err);
+    isConnected = false;
+    printerConfig = null;
+    throw err;
+  }
+};
+
+// Generate ESC/POS commands for menu list
+const generateMenuPrintCommands = (items, categories) => {
+  const restaurantName = import.meta.env.VITE_RESTAURANT_NAME || 'RESTAURANT';
+  
+  // ESC/POS commands
+  const ESC = '\x1B';
+  const GS = '\x1D';
+  const INIT = ESC + '@';
+  const ALIGN_CENTER = ESC + 'a\x01';
+  const ALIGN_LEFT = ESC + 'a\x00';
+  const BOLD_ON = ESC + 'E\x01';
+  const BOLD_OFF = ESC + 'E\x00';
+  const DOUBLE_HEIGHT = GS + '!\x10';
+  const NORMAL_SIZE = GS + '!\x00';
+  const PARTIAL_CUT = GS + 'V\x01';
+  const LF = '\n';
+  
+  const W = 48;
+  const line = (c = '-') => c.repeat(W);
+  const padRight = (str, len) => str.substring(0, len).padEnd(len);
+  const padLeft = (str, len) => str.substring(0, len).padStart(len);
+  
+  let cmd = INIT;
+  
+  // Header
+  cmd += ALIGN_CENTER + BOLD_ON + DOUBLE_HEIGHT;
+  cmd += restaurantName + LF;
+  cmd += NORMAL_SIZE + 'MENU LIST' + LF;
+  cmd += BOLD_OFF;
+  cmd += new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + LF;
+  cmd += line('=') + LF + LF;
+  
+  // Group items by category
+  const categoryMap = {};
+  categories.forEach(cat => {
+    categoryMap[cat.id] = cat.name;
+  });
+  
+  const itemsByCategory = {};
+  items.forEach(item => {
+    const catId = item.categoryId || 'uncategorized';
+    if (!itemsByCategory[catId]) {
+      itemsByCategory[catId] = [];
+    }
+    itemsByCategory[catId].push(item);
+  });
+  
+  // Print items by category
+  cmd += ALIGN_LEFT;
+  
+  Object.keys(itemsByCategory).forEach(catId => {
+    const categoryName = categoryMap[catId] || 'Other Items';
+    const categoryItems = itemsByCategory[catId];
+    
+    // Category header
+    cmd += BOLD_ON + line('-') + LF;
+    cmd += categoryName.toUpperCase() + LF;
+    cmd += line('-') + LF + BOLD_OFF;
+    
+    // Items
+    categoryItems.forEach((item, index) => {
+      const num = (index + 1).toString().padStart(2, ' ');
+      const name = item.name || 'Unknown';
+      const price = '₹' + (item.price || 0).toString();
+      
+      // Format: "01. Item Name............₹100"
+      const nameMaxLen = W - 5 - price.length; // 5 for "01. " and some padding
+      const displayName = padRight(name, nameMaxLen);
+      cmd += `${num}. ${displayName}${padLeft(price, price.length)}` + LF;
+    });
+    
+    cmd += LF;
+  });
+  
+  // Footer
+  cmd += line('=') + LF;
+  cmd += ALIGN_CENTER + BOLD_ON;
+  cmd += `Total Items: ${items.length}` + LF;
+  cmd += BOLD_OFF + LF + LF + LF;
+  
+  cmd += PARTIAL_CUT;
+  
+  return cmd;
+};
+
 // Disconnect QZ Tray
 export const disconnectQZ = () => {
   if (qz && qz.websocket.isActive()) {
@@ -297,6 +404,7 @@ export default {
   preConnectQZ,
   isQZReady,
   printThermalBill,
+  printMenuItems,
   disconnectQZ,
   generateThermalCommands
 };

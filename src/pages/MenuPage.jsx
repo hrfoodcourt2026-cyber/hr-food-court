@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, SquarePen, Trash2, Loader2 } from 'lucide-react';
+import { Plus, SquarePen, Trash2, Loader2, Printer } from 'lucide-react';
 import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import AddCategoryModal from '../components/AddCategoryModal';
 import AddItemModal from '../components/AddItemModal';
+import { printMenuItems, preConnectQZ } from '../utils/qzPrint';
 import toast from 'react-hot-toast';
 
 const MenuPage = () => {
@@ -177,6 +178,27 @@ const MenuPage = () => {
 
   const menuStats = getMenuStats();
 
+  // Print menu items
+  const handlePrintMenu = async () => {
+    try {
+      toast.loading('Connecting to printer...');
+      await preConnectQZ();
+      
+      // Filter items based on selected category
+      const itemsToPrint = selectedCategory === 'all' 
+        ? items 
+        : items.filter(item => item.categoryId === selectedCategory);
+      
+      await printMenuItems(itemsToPrint, categories);
+      toast.dismiss();
+      toast.success('Menu printed successfully!');
+    } catch (error) {
+      toast.dismiss();
+      console.error('Print menu error:', error);
+      toast.error('Failed to print menu: ' + error.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Menu Stats */}
@@ -216,6 +238,13 @@ const MenuPage = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="text-xl md:text-2xl font-bold text-gray-900">Menu Management</h1>
         <div className="flex flex-wrap gap-2 md:gap-3 w-full sm:w-auto">
+          <button
+            onClick={handlePrintMenu}
+            className="flex items-center justify-center space-x-1 md:space-x-2 px-3 md:px-4 py-2 bg-gray-700 text-white hover:bg-gray-800 transition-colors cursor-pointer text-sm md:text-base flex-1 sm:flex-initial"
+          >
+            <Printer className="w-3 md:w-4 h-3 md:h-4" />
+            <span>Print Menu</span>
+          </button>
           <button
             onClick={() => setShowCategoryModal(true)}
             className="flex items-center justify-center space-x-1 md:space-x-2 px-3 md:px-4 py-2 bg-[#ec2b25] text-white hover:bg-[#d12620] transition-colors cursor-pointer text-sm md:text-base flex-1 sm:flex-initial"
