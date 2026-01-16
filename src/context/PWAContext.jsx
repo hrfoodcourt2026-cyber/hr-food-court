@@ -82,7 +82,9 @@ export const PWAProvider = ({ children }) => {
         const updateSW = registerSW({
           immediate: true,
           onNeedRefresh() {
-            setNeedsUpdate(true);
+            // Auto-update: immediately apply the update
+            console.log('New content available, updating...');
+            updateSW(true);
           },
           onOfflineReady() {
             console.log('App ready to work offline');
@@ -91,10 +93,18 @@ export const PWAProvider = ({ children }) => {
             console.log('Service Worker registered:', swUrl);
             setUpdateWorker(registration);
             
-            // Check for updates every 60 seconds
+            // Check for updates every 30 seconds for faster updates
             setInterval(() => {
+              console.log('Checking for SW updates...');
               registration?.update();
-            }, 60 * 1000);
+            }, 30 * 1000);
+
+            // Also check immediately on visibility change (when user returns to app)
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') {
+                registration?.update();
+              }
+            });
           },
           onRegisterError(error) {
             console.error('Service Worker registration error:', error);
