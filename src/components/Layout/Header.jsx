@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, User, Search, Phone, LogOut, Menu } from 'lucide-react';
+import { Bell, User, Search, Phone, LogOut, Menu, RefreshCw } from 'lucide-react';
 import { RESTAURANT_NAME, SUPPORT_PHONE } from '../../data/menuData';
 import { useAuth } from '../../context/AuthContext';
 import InstallButton from '../PWA/InstallButton';
@@ -11,6 +11,10 @@ const Header = ({ onMenuClick }) => {
     if (window.confirm('Are you sure you want to logout?')) {
       logout();
     }
+  };
+
+  const handleReload = () => {
+    window.location.reload();
   };
 
   return (
@@ -54,6 +58,15 @@ const Header = ({ onMenuClick }) => {
 
           {/* PWA Install Button */}
           <InstallButton variant="default" showStatus={true} />
+          
+          {/* Reload Button */}
+          <button
+            onClick={handleReload}
+            className="p-2 hover:bg-gray-100 transition-colors cursor-pointer"
+            title="Reload App"
+          >
+            <RefreshCw className="w-4 md:w-5 h-4 md:h-5 text-gray-700" />
+          </button>
           
           {/* Notifications - Hidden on mobile */}
           {/* <button className="hidden md:block p-2 hover:bg-gray-100 transition-colors cursor-pointer">

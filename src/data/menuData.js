@@ -9,5 +9,8 @@ export const MENU_ITEMS = [
   { label: 'Staff', value: 'staff', path: '/staff', icon: 'Users' }
 ];
 
-export const RESTAURANT_NAME = 'NOVA Restaurant';
-export const SUPPORT_PHONE = '+91 9398638314';
+// Restaurant details from environment variables
+export const RESTAURANT_NAME = import.meta.env.VITE_RESTAURANT_NAME || 'HR FOOD COURT';
+export const SUPPORT_PHONE = import.meta.env.VITE_RESTAURANT_MOBILE || '+91 9966850426';
+export const RESTAURANT_ADDRESS = import.meta.env.VITE_RESTAURANT_ADDRESS || '';
+export const RESTAURANT_GST = import.meta.env.VITE_RESTAURANT_GST || '';
