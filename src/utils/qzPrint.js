@@ -177,15 +177,25 @@ export const generateThermalCommands = (billData) => {
   
   // Header - Restaurant Name (normal size, bold)
   cmd += ALIGN_CENTER + BOLD_ON;
-  cmd += 'HOTEL NELLORE ROYAL' + LF;
-  cmd += 'MULTICUSINE RESTAURANT' + LF;
+  cmd += restaurantName + LF;
   cmd += BOLD_OFF + LF;
   
-  // Address (split into multiple lines)
-  cmd += 'Opp-Anjaneya swamy temple,' + LF;
-  cmd += 'Beside brahmaiah college,' + LF;
-  cmd += 'North Rajupalem Highway,' + LF;
-  cmd += 'Kodavalur Mandal, Nellore Dist.' + LF;
+  // Address - split long address into multiple lines (max ~40 chars per line)
+  if (restaurantAddress) {
+    const words = restaurantAddress.split(' ');
+    let currentLine = '';
+    for (const word of words) {
+      if ((currentLine + ' ' + word).trim().length > 40) {
+        cmd += currentLine.trim() + LF;
+        currentLine = word;
+      } else {
+        currentLine = (currentLine + ' ' + word).trim();
+      }
+    }
+    if (currentLine) {
+      cmd += currentLine + LF;
+    }
+  }
   
   // Mobile
   cmd += `Ph: ${restaurantMobile}` + LF;
