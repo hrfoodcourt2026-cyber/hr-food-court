@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { db } from '../config/firebase';
 import { collection, query, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { Loader2, CheckCircle, Clock } from 'lucide-react';
+import NotifyAudio from '../assets/notification.mp3'
 
 const STATUS_OPTIONS = [
   { label: 'All', value: '' },
@@ -26,12 +27,37 @@ const Orders = () => {
   const [type, setType] = useState('');
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
+  
+  // Refs to track initial load and known order IDs
+  const isInitialLoad = useRef(true);
+  const knownOrderIds = useRef(new Set());
+  const audioRef = useRef(new Audio(NotifyAudio));
 
   useEffect(() => {
     setLoading(true);
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       let data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Check for new orders (only after initial load)
+      if (isInitialLoad.current) {
+        // First load - just store all order IDs without playing sound
+        data.forEach(order => knownOrderIds.current.add(order.id));
+        isInitialLoad.current = false;
+      } else {
+        // Check if there are any new orders
+        const newOrders = data.filter(order => !knownOrderIds.current.has(order.id));
+        
+        if (newOrders.length > 0) {
+          // Play notification sound for new orders
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+          
+          // Add new order IDs to known set
+          newOrders.forEach(order => knownOrderIds.current.add(order.id));
+        }
+      }
+      
       setOrders(data);
       setLoading(false);
     });
