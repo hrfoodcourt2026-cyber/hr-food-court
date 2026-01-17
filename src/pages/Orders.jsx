@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { db } from '../config/firebase';
 import { collection, query, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
-import { Loader2, CheckCircle, Clock } from 'lucide-react';
+import { Loader2, CheckCircle, Clock, Volume2 } from 'lucide-react';
 import NotifyAudio from '../assets/notification.mp3'
 
 const STATUS_OPTIONS = [
@@ -27,11 +27,58 @@ const Orders = () => {
   const [type, setType] = useState('');
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   
   // Refs to track initial load and known order IDs
   const isInitialLoad = useRef(true);
   const knownOrderIds = useRef(new Set());
-  const audioRef = useRef(new Audio(NotifyAudio));
+  const audioRef = useRef(null);
+
+  // Initialize audio and unlock on user interaction (for mobile)
+  useEffect(() => {
+    audioRef.current = new Audio(NotifyAudio);
+    audioRef.current.preload = 'auto';
+    audioRef.current.load();
+
+    // Function to unlock audio on mobile
+    const unlockAudio = () => {
+      if (audioRef.current && !audioUnlocked) {
+        // Play and immediately pause to unlock audio on mobile
+        audioRef.current.play().then(() => {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+          setAudioUnlocked(true);
+        }).catch(() => {
+          // Silently fail if autoplay is blocked
+        });
+      }
+    };
+
+    // Add event listeners for user interaction to unlock audio
+    const events = ['touchstart', 'touchend', 'click', 'keydown'];
+    events.forEach(event => {
+      document.addEventListener(event, unlockAudio, { once: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, unlockAudio);
+      });
+    };
+  }, [audioUnlocked]);
+
+  // Play notification sound function
+  const playNotificationSound = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.log('Audio play failed:', err);
+        });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -50,8 +97,7 @@ const Orders = () => {
         
         if (newOrders.length > 0) {
           // Play notification sound for new orders
-          audioRef.current.currentTime = 0;
-          audioRef.current.play().catch(err => console.log('Audio play failed:', err));
+          playNotificationSound();
           
           // Add new order IDs to known set
           newOrders.forEach(order => knownOrderIds.current.add(order.id));
@@ -62,7 +108,7 @@ const Orders = () => {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [playNotificationSound]);
 
   const markAsComplete = async (orderId) => {
     setUpdatingId(orderId);
@@ -179,7 +225,27 @@ const Orders = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="text-xl md:text-2xl font-bold text-gray-900">Orders</h1>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
+          {/* Sound Enable Button for Mobile */}
+          <button
+            onClick={() => {
+              if (audioRef.current) {
+                audioRef.current.currentTime = 0;
+                audioRef.current.play().then(() => {
+                  setAudioUnlocked(true);
+                }).catch(err => console.log('Audio play failed:', err));
+              }
+            }}
+            className={`flex items-center space-x-1 px-2 py-1 text-xs border transition-colors ${
+              audioUnlocked 
+                ? 'bg-green-100 border-green-300 text-green-700' 
+                : 'bg-yellow-100 border-yellow-300 text-yellow-700 animate-pulse'
+            }`}
+            title={audioUnlocked ? 'Sound enabled' : 'Tap to enable notification sound'}
+          >
+            <Volume2 className="w-4 h-4" />
+            <span className="hidden sm:inline">{audioUnlocked ? 'Sound On' : 'Enable Sound'}</span>
+          </button>
           <div className="flex items-center space-x-2 text-xs md:text-sm">
             <span className="text-gray-600">Total Orders:</span>
             <span className="font-bold text-[#ec2b25]">{filteredOrders.length}</span>
